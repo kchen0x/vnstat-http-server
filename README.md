@@ -18,7 +18,24 @@ A lightweight single-file tool written in Go that exposes vnstat statistics from
 
 ## Quick Start
 
-### 1. Build
+### 1. Download Pre-built Binaries
+
+Pre-built binaries are available in [Releases](https://github.com/kchen0x/vnstat-http-server/releases).
+
+**Latest Release**: [v0.1](https://github.com/kchen0x/vnstat-http-server/releases/tag/v0.1)
+
+Download the appropriate binary for your system:
+- `vnstat-http-server-linux-amd64` - For Linux x86_64 systems
+- `vnstat-http-server-linux-arm64` - For Linux ARM64 systems
+
+After downloading, make it executable:
+```bash
+chmod +x vnstat-http-server-linux-amd64
+```
+
+### 2. Build from Source
+
+If you prefer to build from source:
 
 ```bash
 make build
@@ -28,7 +45,7 @@ After compilation, binary files are located in the `bin/` directory:
 - `bin/vnstat-http-server-linux-amd64`
 - `bin/vnstat-http-server-linux-arm64`
 
-### 2. Run
+### 3. Run
 
 ```bash
 # Basic run (no authentication)
@@ -41,7 +58,7 @@ After compilation, binary files are located in the `bin/` directory:
 ./bin/vnstat-http-server-linux-amd64 -port 8080 -token your-secret-token -interface eth0
 ```
 
-### 3. Command Line Arguments
+### 4. Command Line Arguments
 
 - `-port`: Listening port, default `8080`
 - `-token`: Authentication token, default empty (no authentication)

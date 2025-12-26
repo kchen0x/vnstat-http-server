@@ -18,7 +18,24 @@
 
 ## 快速开始
 
-### 1. 编译
+### 1. 下载预编译二进制文件
+
+预编译的二进制文件可在 [Releases](https://github.com/kchen0x/vnstat-http-server/releases) 页面下载。
+
+**最新版本**: [v0.1](https://github.com/kchen0x/vnstat-http-server/releases/tag/v0.1)
+
+根据你的系统下载对应的二进制文件：
+- `vnstat-http-server-linux-amd64` - 适用于 Linux x86_64 系统
+- `vnstat-http-server-linux-arm64` - 适用于 Linux ARM64 系统
+
+下载后，赋予执行权限：
+```bash
+chmod +x vnstat-http-server-linux-amd64
+```
+
+### 2. 从源码编译
+
+如果你希望从源码编译：
 
 ```bash
 make build
@@ -28,7 +45,7 @@ make build
 - `bin/vnstat-http-server-linux-amd64`
 - `bin/vnstat-http-server-linux-arm64`
 
-### 2. 运行
+### 3. 运行
 
 ```bash
 # 基本运行（无鉴权）
@@ -41,7 +58,7 @@ make build
 ./bin/vnstat-http-server-linux-amd64 -port 8080 -token your-secret-token -interface eth0
 ```
 
-### 3. 命令行参数
+### 4. 命令行参数
 
 - `-port`: 监听端口，默认 `8080`
 - `-token`: 访问鉴权 Token，默认为空（即不开启鉴权）
