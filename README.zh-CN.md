@@ -12,6 +12,8 @@
 
 一个基于 Go 语言的轻量级单文件工具，用于将 Linux 服务器上的 vnstat 统计数据通过 HTTP 接口暴露出来，方便手机 App、前端网页、脚本以及 Grafana Cloud 等监控系统进行远程监控。
 
+![Hero](./images/Hero.png)
+
 ## 特性
 
 - 🚀 **零依赖**：除 vnstat 本身外，无需安装 Python、PHP、Node 或 Docker

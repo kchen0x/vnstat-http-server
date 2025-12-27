@@ -12,6 +12,8 @@
 
 A lightweight single-file tool written in Go that exposes vnstat statistics from Linux servers via HTTP API, enabling remote monitoring by mobile apps, web frontends, scripts, and monitoring systems like Grafana Cloud.
 
+![Hero](./images/Hero.png)
+
 ## Features
 
 - 🚀 **Zero Dependencies**: No need to install Python, PHP, Node, or Docker (except vnstat itself)
