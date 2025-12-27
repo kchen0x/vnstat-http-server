@@ -117,6 +117,9 @@ curl http://localhost:8080/json?token=your-secret-token
 curl http://localhost:8080/summary?token=your-secret-token
 ```
 
+**输出示例**:
+![总览视图](./images/Summary.png)
+
 #### 2.2 月度视图
 
 **接口**: `GET /` 或 `GET /monthly`
@@ -127,6 +130,9 @@ curl http://localhost:8080/summary?token=your-secret-token
 ```bash
 curl http://localhost:8080/?token=your-secret-token
 ```
+
+**输出示例**:
+![月度视图](./images/Monthly.png)
 
 #### 2.3 日视图
 
@@ -288,9 +294,15 @@ curl http://localhost:8080/health
 - 🔄 可配置刷新间隔（默认 5 分钟）
 - ⚡ 快速响应，10 秒超时
 
+**Widget 预览**:
+![iOS Widget](./images/Widget.jpg)
+
 ## Grafana Cloud 集成
 
 `/metrics` 接口提供 Prometheus 格式的指标数据，可以轻松与 Grafana Cloud 集成。
+
+**Grafana 仪表盘预览**:
+![Grafana 仪表盘](./images/Network%20Traffic%20Monitor-Grafana.png)
 
 ### 方案 1：内置推送（推荐 - 轻量级）
 

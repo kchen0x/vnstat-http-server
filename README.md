@@ -117,6 +117,9 @@ The following endpoints return `Content-Type: text/plain; charset=utf-8` formatt
 curl http://localhost:8080/summary?token=your-secret-token
 ```
 
+**Example Output**:
+![Summary View](./images/Summary.png)
+
 #### 2.2 Monthly View
 
 **Endpoint**: `GET /` or `GET /monthly`
@@ -127,6 +130,9 @@ curl http://localhost:8080/summary?token=your-secret-token
 ```bash
 curl http://localhost:8080/?token=your-secret-token
 ```
+
+**Example Output**:
+![Monthly View](./images/Monthly.png)
 
 #### 2.3 Daily View
 
@@ -288,9 +294,15 @@ For complete usage instructions, configuration options, and troubleshooting, ple
 - 🔄 Configurable refresh interval (default 5 minutes)
 - ⚡ Fast response, 10 second timeout
 
+**Widget Preview**:
+![iOS Widget](./images/Widget.jpg)
+
 ## Grafana Cloud Integration
 
 The `/metrics` endpoint provides Prometheus-format metrics that can be easily integrated with Grafana Cloud.
+
+**Grafana Dashboard Preview**:
+![Grafana Dashboard](./images/Network%20Traffic%20Monitor-Grafana.png)
 
 ### Option 1: Built-in Push (Recommended - Lightweight)
 
