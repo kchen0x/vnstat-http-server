@@ -1,6 +1,6 @@
 # vnstat-http-server
 
-A lightweight single-file tool written in Go that exposes vnstat statistics from Linux servers via HTTP API, enabling remote monitoring by mobile apps, web frontends, or scripts.
+A lightweight single-file tool written in Go that exposes vnstat statistics from Linux servers via HTTP API, enabling remote monitoring by mobile apps, web frontends, scripts, and monitoring systems like Grafana Cloud.
 
 ## Features
 
@@ -9,6 +9,10 @@ A lightweight single-file tool written in Go that exposes vnstat statistics from
 - 🔒 **Secure**: Simple token-based authentication support
 - 🌐 **CORS Support**: All endpoints support cross-origin requests
 - 📊 **Multiple Formats**: Supports both JSON and plain text output
+- 📈 **Prometheus Metrics**: Exposes `/metrics` endpoint in Prometheus format
+- ☁️ **Grafana Cloud Integration**: Built-in push to Grafana Cloud with Protobuf + Snappy compression
+- 🏷️ **Multi-Server Support**: Automatic hostname labels for distinguishing multiple servers
+- 📱 **iOS Widget**: Scriptable widget for iPhone home screen monitoring
 
 ## Requirements
 

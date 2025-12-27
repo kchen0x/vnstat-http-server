@@ -1,6 +1,6 @@
 # vnstat-http-server
 
-一个基于 Go 语言的轻量级单文件工具，用于将 Linux 服务器上的 vnstat 统计数据通过 HTTP 接口暴露出来，方便手机 App、前端网页或脚本进行远程监控。
+一个基于 Go 语言的轻量级单文件工具，用于将 Linux 服务器上的 vnstat 统计数据通过 HTTP 接口暴露出来，方便手机 App、前端网页、脚本以及 Grafana Cloud 等监控系统进行远程监控。
 
 ## 特性
 
@@ -9,6 +9,10 @@
 - 🔒 **安全**：支持简单的 Token 鉴权
 - 🌐 **CORS 支持**：所有接口支持跨域请求
 - 📊 **多格式输出**：支持 JSON 和文本两种格式
+- 📈 **Prometheus 指标**：提供 `/metrics` 接口，输出 Prometheus 格式指标
+- ☁️ **Grafana Cloud 集成**：内置推送功能，支持 Protobuf + Snappy 压缩
+- 🏷️ **多服务器支持**：自动添加 hostname 标签，支持区分多台服务器
+- 📱 **iOS Widget**：支持 Scriptable 小部件，可在 iPhone 主屏幕监控
 
 ## 系统要求
 
