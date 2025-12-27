@@ -27,7 +27,7 @@ A lightweight single-file tool written in Go that exposes vnstat statistics from
 ## Requirements
 
 - Linux system (amd64 / arm64)
-- `vnstat` tool installed
+- `vnstat` tool installed ([Installation Guide](https://humdi.net/vnstat/))
 - Go 1.21+ (only needed for compilation)
 
 ## Quick Start
@@ -418,8 +418,8 @@ Since metrics are stored in bytes, you should format them for better readability
 
 1. **For Panel Display**:
    - Go to Panel settings → Field → Unit
-   - Select: `Data rate` → `bytes(IEC)` or `bytes(SI)`
-   - Or use: `bytes/sec(IEC)` for rate queries
+   - Select: `Data rate` → `bytes(SI)`
+   - Or use: `bytes/sec(SI)` for rate queries
 
 2. **In Query (convert to GB)**:
    ```promql
@@ -443,7 +443,7 @@ Since metrics are stored in bytes, you should format them for better readability
    ```
 
 4. **Recommended Panel Settings**:
-   - **Unit**: `bytes(IEC)` or `bytes(SI)`
+   - **Unit**: `bytes(SI)`
    - **Decimals**: 2
    - **Legend**: `{{hostname}} - {{direction}}`
 
@@ -462,15 +462,64 @@ sudo cp bin/vnstat-http-server-linux-amd64 /usr/local/bin/vnstat-http-server
 sudo chmod +x /usr/local/bin/vnstat-http-server
 ```
 
-2. Copy service configuration file:
-```bash
-sudo cp vnstat-server.service /etc/systemd/system/
-```
-
-3. Edit service configuration file, modify `ExecStart` path and parameters:
+2. Create service configuration file:
 ```bash
 sudo nano /etc/systemd/system/vnstat-server.service
 ```
+
+3. Choose one of the following configuration templates:
+
+### Configuration Template 1: Basic (No Grafana Push)
+
+```ini
+[Unit]
+Description=vnstat HTTP Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/vnstat-http-server -port 8080 -token YOUR_TOKEN_HERE
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Configuration Template 2: With Grafana Cloud Push
+
+```ini
+[Unit]
+Description=vnstat HTTP Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/vnstat-http-server \
+  -port 8080 \
+  -token YOUR_TOKEN_HERE \
+  -grafana-url "https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push" \
+  -grafana-user "YOUR_INSTANCE_ID" \
+  -grafana-token "YOUR_API_TOKEN" \
+  -grafana-interval 30s
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Note**: Replace the following placeholders in the configuration:
+- `YOUR_TOKEN_HERE`: Your authentication token
+- `YOUR_PROMETHEUS_INSTANCE`: Your Grafana Cloud Prometheus instance URL
+- `YOUR_INSTANCE_ID`: Your Grafana Cloud instance ID
+- `YOUR_API_TOKEN`: Your Grafana Cloud API token
 
 4. Start the service:
 ```bash

@@ -27,7 +27,7 @@
 ## 系统要求
 
 - Linux 系统（amd64 / arm64）
-- 已安装 `vnstat` 工具
+- 已安装 `vnstat` 工具（[安装指南](https://humdi.net/vnstat/)）
 - Go 1.21+ （仅编译时需要）
 
 ## 快速开始
@@ -418,8 +418,8 @@ remote_write:
 
 1. **面板显示设置**：
    - 进入面板设置 → Field → Unit
-   - 选择：`Data rate` → `bytes(IEC)` 或 `bytes(SI)`
-   - 或使用：`bytes/sec(IEC)` 用于速率查询
+   - 选择：`Data rate` → `bytes(SI)`
+   - 或使用：`bytes/sec(SI)` 用于速率查询
 
 2. **在查询中转换（转换为 GB）**：
    ```promql
@@ -443,7 +443,7 @@ remote_write:
    ```
 
 4. **推荐的面板设置**：
-   - **单位**: `bytes(IEC)` 或 `bytes(SI)`
+   - **单位**: `bytes(SI)`
    - **小数位数**: 2
    - **图例**: `{{hostname}} - {{direction}}`
 
@@ -462,15 +462,64 @@ sudo cp bin/vnstat-http-server-linux-amd64 /usr/local/bin/vnstat-http-server
 sudo chmod +x /usr/local/bin/vnstat-http-server
 ```
 
-2. 复制服务配置文件：
-```bash
-sudo cp vnstat-server.service /etc/systemd/system/
-```
-
-3. 编辑服务配置文件，修改 `ExecStart` 路径和参数：
+2. 创建服务配置文件：
 ```bash
 sudo nano /etc/systemd/system/vnstat-server.service
 ```
+
+3. 选择以下配置模板之一：
+
+### 配置模板 1：基础配置（不推送 Grafana）
+
+```ini
+[Unit]
+Description=vnstat HTTP Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/vnstat-http-server -port 8080 -token YOUR_TOKEN_HERE
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 配置模板 2：启用 Grafana Cloud 推送
+
+```ini
+[Unit]
+Description=vnstat HTTP Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/vnstat-http-server \
+  -port 8080 \
+  -token YOUR_TOKEN_HERE \
+  -grafana-url "https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push" \
+  -grafana-user "YOUR_INSTANCE_ID" \
+  -grafana-token "YOUR_API_TOKEN" \
+  -grafana-interval 30s
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**注意**：请在配置中替换以下占位符：
+- `YOUR_TOKEN_HERE`: 你的访问鉴权 Token
+- `YOUR_PROMETHEUS_INSTANCE`: 你的 Grafana Cloud Prometheus 实例 URL
+- `YOUR_INSTANCE_ID`: 你的 Grafana Cloud 实例 ID
+- `YOUR_API_TOKEN`: 你的 Grafana Cloud API 令牌
 
 4. 启动服务：
 ```bash
