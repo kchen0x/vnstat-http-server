@@ -176,7 +176,41 @@ curl http://localhost:8080/top?token=your-secret-token
 curl http://localhost:8080/oneline?token=your-secret-token
 ```
 
-### 3. 健康检查
+### 3. Prometheus Metrics
+
+**接口**: `GET /metrics`
+
+**描述**: 返回 Prometheus 格式的指标数据，用于与 Grafana Cloud、Prometheus 等监控系统集成
+
+**响应**: `Content-Type: text/plain; version=0.0.4; charset=utf-8`
+
+**提供的指标**:
+- `vnstat_traffic_total_bytes{interface="<name>",direction="rx|tx"}` - 总流量（字节）
+- `vnstat_traffic_month_bytes{interface="<name>",direction="rx|tx"}` - 月度流量（字节）
+- `vnstat_traffic_today_bytes{interface="<name>",direction="rx|tx"}` - 今日流量（字节）
+
+**示例**:
+```bash
+# 无鉴权（如果未设置 token）
+curl http://localhost:8080/metrics
+
+# 有鉴权（如果设置了 token）
+curl http://localhost:8080/metrics?token=your-secret-token
+```
+
+**输出示例**:
+```
+# HELP vnstat_traffic_total_bytes Total traffic in bytes
+# TYPE vnstat_traffic_total_bytes counter
+vnstat_traffic_total_bytes{interface="eth0",direction="rx"} 1234567890
+vnstat_traffic_total_bytes{interface="eth0",direction="tx"} 987654321
+vnstat_traffic_month_bytes{interface="eth0",direction="rx"} 123456789
+vnstat_traffic_month_bytes{interface="eth0",direction="tx"} 98765432
+vnstat_traffic_today_bytes{interface="eth0",direction="rx"} 1234567
+vnstat_traffic_today_bytes{interface="eth0",direction="tx"} 987654
+```
+
+### 4. 健康检查
 
 **接口**: `GET /health`
 
@@ -201,6 +235,7 @@ curl http://localhost:8080/health
 | 接口 | 功能 | 输出格式 | 用途 |
 |------|------|----------|------|
 | `/json` | 完整 JSON 数据 | JSON | API 集成、数据分析 |
+| `/metrics` | Prometheus 指标 | Prometheus | Grafana Cloud、Prometheus 集成 |
 | `/summary` | 默认总览 | 文本 | 快速查看总体情况 |
 | `/daily` | 日统计 | 文本 | 查看每日流量趋势 |
 | `/hourly` | 小时统计 | 文本 | 查看每小时流量变化 |
@@ -234,6 +269,90 @@ curl http://localhost:8080/health
 - 📈 可视化进度条，支持半格填充
 - 🔄 可配置刷新间隔（默认 5 分钟）
 - ⚡ 快速响应，10 秒超时
+
+## Grafana Cloud 集成
+
+`/metrics` 接口提供 Prometheus 格式的指标数据，可以轻松与 Grafana Cloud 集成。
+
+### 方案 1：使用 Grafana Agent（推荐）
+
+1. **在服务器上安装 Grafana Agent**：
+   ```bash
+   # Linux 系统
+   curl -O -L "https://github.com/grafana/agent/releases/latest/download/grafana-agent-linux-amd64.zip"
+   unzip grafana-agent-linux-amd64.zip
+   sudo mv grafana-agent-linux-amd64 /usr/local/bin/grafana-agent
+   sudo chmod +x /usr/local/bin/grafana-agent
+   ```
+
+2. **创建 Grafana Agent 配置文件** (`/etc/grafana-agent/config.yaml`)：
+   ```yaml
+   metrics:
+     configs:
+       - name: vnstat
+         remote_write:
+           - url: https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push
+             basic_auth:
+               username: YOUR_INSTANCE_ID
+               password: YOUR_API_TOKEN
+         scrape_configs:
+           - job_name: 'vnstat'
+             static_configs:
+               - targets: ['localhost:8080']
+             metrics_path: '/metrics'
+             scrape_interval: 30s
+             params:
+               token: ['your-vnstat-token']  # 如果启用了 token
+   ```
+
+3. **启动 Grafana Agent**：
+   ```bash
+   sudo grafana-agent --config.file=/etc/grafana-agent/config.yaml
+   ```
+
+### 方案 2：使用 Prometheus Remote Write
+
+如果你正在运行 Prometheus，可以配置它抓取 `/metrics` 接口并远程写入到 Grafana Cloud：
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: 'vnstat'
+    static_configs:
+      - targets: ['localhost:8080']
+    metrics_path: '/metrics'
+    params:
+      token: ['your-vnstat-token']  # 如果启用了 token
+
+remote_write:
+  - url: https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push
+    basic_auth:
+      username: YOUR_INSTANCE_ID
+      password: YOUR_API_TOKEN
+```
+
+### 方案 3：直接 HTTP 推送（高级）
+
+你也可以创建一个脚本，定期将指标推送到 Grafana Cloud 的 Prometheus remote write API。
+
+### 在 Grafana 中创建仪表盘
+
+一旦指标数据流入 Grafana Cloud，你可以使用以下查询创建仪表盘：
+
+- **总流量**: `sum(vnstat_traffic_total_bytes)`
+- **月度流量**: `sum(vnstat_traffic_month_bytes)`
+- **今日流量**: `sum(vnstat_traffic_today_bytes)`
+- **按接口**: `vnstat_traffic_total_bytes{interface="eth0"}`
+- **上传 vs 下载**: 
+  - 上传: `sum(vnstat_traffic_total_bytes{direction="tx"})`
+  - 下载: `sum(vnstat_traffic_total_bytes{direction="rx"})`
+
+### 获取 Grafana Cloud 凭证
+
+1. 登录 [Grafana Cloud](https://grafana.com/auth/sign-up/create-user)
+2. 进入 **My Account** → **Prometheus** → **Details**
+3. 复制你的 **Instance ID**（用户名）和 **API Token**（密码）
+4. 在 Grafana Agent 或 Prometheus 配置中使用这些凭证
 
 ## Systemd 服务配置
 

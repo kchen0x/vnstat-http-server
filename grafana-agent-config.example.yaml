@@ -1,0 +1,37 @@
+# Grafana Agent Configuration Example for vnstat-http-server
+# Copy this file to /etc/grafana-agent/config.yaml and modify with your credentials
+
+metrics:
+  configs:
+    - name: vnstat
+      # Grafana Cloud Prometheus remote write endpoint
+      # Replace with your Grafana Cloud endpoint
+      remote_write:
+        - url: https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push
+          basic_auth:
+            # Replace with your Grafana Cloud credentials
+            username: YOUR_INSTANCE_ID
+            password: YOUR_API_TOKEN
+      
+      # Scrape configuration for vnstat-http-server
+      scrape_configs:
+        - job_name: 'vnstat'
+          static_configs:
+            - targets: ['localhost:8080']
+          metrics_path: '/metrics'
+          scrape_interval: 30s  # Scrape every 30 seconds
+          scrape_timeout: 10s
+          # If vnstat-http-server has token authentication enabled, uncomment and set:
+          # params:
+          #   token: ['your-vnstat-token']
+
+# Optional: Logs configuration (if you want to collect logs)
+# logs:
+#   configs:
+#     - name: default
+#       clients:
+#         - url: https://logs-prod-01-eu-west-0.grafana.net/loki/api/v1/push
+#           basic_auth:
+#             username: YOUR_INSTANCE_ID
+#             password: YOUR_LOGS_API_TOKEN
+

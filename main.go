@@ -28,6 +28,7 @@ func main() {
 
 	// Register routes (specific paths must be registered before generic paths)
 	http.HandleFunc("/health", server.handleHealth)
+	http.HandleFunc("/metrics", server.handleMetrics)
 	http.HandleFunc("/json", server.handleJSON)
 	http.HandleFunc("/summary", server.handleSummary)
 	http.HandleFunc("/daily", server.handleDaily)
@@ -50,7 +51,7 @@ func main() {
 		log.Printf("Example: http://localhost%s/json", addr)
 	}
 	log.Printf("Health check: http://localhost%s/health", addr)
-	log.Printf("Available endpoints: /json, /summary, /daily, /hourly, /weekly, /monthly(/), /yearly, /top, /oneline")
+	log.Printf("Available endpoints: /json, /metrics, /summary, /daily, /hourly, /weekly, /monthly(/), /yearly, /top, /oneline")
 	log.Printf("Press Ctrl+C to stop")
 
 	// Start HTTP server

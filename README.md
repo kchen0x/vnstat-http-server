@@ -176,7 +176,41 @@ curl http://localhost:8080/top?token=your-secret-token
 curl http://localhost:8080/oneline?token=your-secret-token
 ```
 
-### 3. Health Check
+### 3. Prometheus Metrics
+
+**Endpoint**: `GET /metrics`
+
+**Description**: Returns Prometheus format metrics for integration with monitoring systems like Grafana Cloud, Prometheus, etc.
+
+**Response**: `Content-Type: text/plain; version=0.0.4; charset=utf-8`
+
+**Metrics Provided**:
+- `vnstat_traffic_total_bytes{interface="<name>",direction="rx|tx"}` - Total traffic in bytes
+- `vnstat_traffic_month_bytes{interface="<name>",direction="rx|tx"}` - Monthly traffic in bytes
+- `vnstat_traffic_today_bytes{interface="<name>",direction="rx|tx"}` - Today's traffic in bytes
+
+**Example**:
+```bash
+# Without authentication (if token is not set)
+curl http://localhost:8080/metrics
+
+# With authentication (if token is set)
+curl http://localhost:8080/metrics?token=your-secret-token
+```
+
+**Example Output**:
+```
+# HELP vnstat_traffic_total_bytes Total traffic in bytes
+# TYPE vnstat_traffic_total_bytes counter
+vnstat_traffic_total_bytes{interface="eth0",direction="rx"} 1234567890
+vnstat_traffic_total_bytes{interface="eth0",direction="tx"} 987654321
+vnstat_traffic_month_bytes{interface="eth0",direction="rx"} 123456789
+vnstat_traffic_month_bytes{interface="eth0",direction="tx"} 98765432
+vnstat_traffic_today_bytes{interface="eth0",direction="rx"} 1234567
+vnstat_traffic_today_bytes{interface="eth0",direction="tx"} 987654
+```
+
+### 4. Health Check
 
 **Endpoint**: `GET /health`
 
@@ -201,6 +235,7 @@ curl http://localhost:8080/health
 | Endpoint | Function | Output Format | Use Case |
 |----------|----------|---------------|----------|
 | `/json` | Complete JSON data | JSON | API integration, data analysis |
+| `/metrics` | Prometheus metrics | Prometheus | Grafana Cloud, Prometheus integration |
 | `/summary` | Default summary | Text | Quick overview |
 | `/daily` | Daily statistics | Text | Daily traffic trends |
 | `/hourly` | Hourly statistics | Text | Hourly traffic changes |
@@ -234,6 +269,90 @@ For complete usage instructions, configuration options, and troubleshooting, ple
 - 📈 Visual progress bar with half-fill support
 - 🔄 Configurable refresh interval (default 5 minutes)
 - ⚡ Fast response, 10 second timeout
+
+## Grafana Cloud Integration
+
+The `/metrics` endpoint provides Prometheus-format metrics that can be easily integrated with Grafana Cloud.
+
+### Option 1: Using Grafana Agent
+
+1. **Install Grafana Agent** on your server:
+   ```bash
+   # For Linux
+   curl -O -L "https://github.com/grafana/agent/releases/latest/download/grafana-agent-linux-amd64.zip"
+   unzip grafana-agent-linux-amd64.zip
+   sudo mv grafana-agent-linux-amd64 /usr/local/bin/grafana-agent
+   sudo chmod +x /usr/local/bin/grafana-agent
+   ```
+
+2. **Create Grafana Agent configuration** (`/etc/grafana-agent/config.yaml`):
+   ```yaml
+   metrics:
+     configs:
+       - name: vnstat
+         remote_write:
+           - url: https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push
+             basic_auth:
+               username: YOUR_INSTANCE_ID
+               password: YOUR_API_TOKEN
+         scrape_configs:
+           - job_name: 'vnstat'
+             static_configs:
+               - targets: ['localhost:8080']
+             metrics_path: '/metrics'
+             scrape_interval: 30s
+             params:
+               token: ['your-vnstat-token']  # If token is enabled
+   ```
+
+3. **Start Grafana Agent**:
+   ```bash
+   sudo grafana-agent --config.file=/etc/grafana-agent/config.yaml
+   ```
+
+### Option 2: Using Prometheus Remote Write
+
+If you're running Prometheus, you can configure it to scrape the `/metrics` endpoint and remote write to Grafana Cloud:
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: 'vnstat'
+    static_configs:
+      - targets: ['localhost:8080']
+    metrics_path: '/metrics'
+    params:
+      token: ['your-vnstat-token']  # If token is enabled
+
+remote_write:
+  - url: https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push
+    basic_auth:
+      username: YOUR_INSTANCE_ID
+      password: YOUR_API_TOKEN
+```
+
+### Option 3: Direct HTTP Push (Advanced)
+
+You can also create a script to periodically push metrics to Grafana Cloud using the Prometheus remote write API.
+
+### Creating Dashboards in Grafana
+
+Once metrics are flowing to Grafana Cloud, you can create dashboards using these queries:
+
+- **Total Traffic**: `sum(vnstat_traffic_total_bytes)`
+- **Monthly Traffic**: `sum(vnstat_traffic_month_bytes)`
+- **Today's Traffic**: `sum(vnstat_traffic_today_bytes)`
+- **By Interface**: `vnstat_traffic_total_bytes{interface="eth0"}`
+- **Upload vs Download**: 
+  - Upload: `sum(vnstat_traffic_total_bytes{direction="tx"})`
+  - Download: `sum(vnstat_traffic_total_bytes{direction="rx"})`
+
+### Getting Grafana Cloud Credentials
+
+1. Log in to [Grafana Cloud](https://grafana.com/auth/sign-up/create-user)
+2. Go to **My Account** → **Prometheus** → **Details**
+3. Copy your **Instance ID** (username) and **API Token** (password)
+4. Use these in your Grafana Agent or Prometheus configuration
 
 ## Systemd Service Configuration
 

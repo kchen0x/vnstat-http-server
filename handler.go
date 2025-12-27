@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 )
 
 // Server wraps HTTP server configuration
@@ -217,5 +218,126 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"status": "ok",
 	})
+}
+
+// handleMetrics handles /metrics endpoint, returns Prometheus format metrics
+func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
+	s.addCORS(w)
+
+	// Handle OPTIONS preflight request
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Only allow GET requests
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Token authentication is optional for metrics endpoint
+	// If token is set, require it; otherwise allow anonymous access
+	if s.token != "" && !s.checkToken(r) {
+		http.Error(w, "Unauthorized: Invalid or missing token", http.StatusUnauthorized)
+		return
+	}
+
+	// Get JSON data
+	jsonData, err := s.service.GetJSON()
+	if err != nil {
+		log.Printf("Failed to get JSON data for metrics: %v", err)
+		http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
+		return
+	}
+
+	// Parse JSON and convert to Prometheus format
+	var vnstatData map[string]interface{}
+	if err := json.Unmarshal(jsonData, &vnstatData); err != nil {
+		log.Printf("Failed to parse JSON data: %v", err)
+		http.Error(w, "Failed to parse data", http.StatusInternalServerError)
+		return
+	}
+
+	// Generate Prometheus metrics
+	metrics := s.generatePrometheusMetrics(vnstatData)
+
+	w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(metrics))
+}
+
+// generatePrometheusMetrics converts vnstat JSON to Prometheus format
+func (s *Server) generatePrometheusMetrics(data map[string]interface{}) string {
+	var metrics strings.Builder
+
+	// Add help and type comments
+	metrics.WriteString("# HELP vnstat_traffic_total_bytes Total traffic in bytes\n")
+	metrics.WriteString("# TYPE vnstat_traffic_total_bytes counter\n")
+	metrics.WriteString("# HELP vnstat_traffic_month_bytes Monthly traffic in bytes\n")
+	metrics.WriteString("# TYPE vnstat_traffic_month_bytes counter\n")
+	metrics.WriteString("# HELP vnstat_traffic_today_bytes Today's traffic in bytes\n")
+	metrics.WriteString("# TYPE vnstat_traffic_today_bytes counter\n")
+
+	interfaces, ok := data["interfaces"].([]interface{})
+	if !ok {
+		return metrics.String() + "# No interface data available\n"
+	}
+
+	for _, iface := range interfaces {
+		ifaceMap, ok := iface.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		interfaceName := fmt.Sprintf("%v", ifaceMap["name"])
+		// Escape interface name for Prometheus label
+		interfaceName = strings.ReplaceAll(interfaceName, "\"", "\\\"")
+		interfaceName = strings.ReplaceAll(interfaceName, "\n", "\\n")
+		interfaceName = strings.ReplaceAll(interfaceName, "\\", "\\\\")
+
+		traffic, ok := ifaceMap["traffic"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		// Total traffic
+		if total, ok := traffic["total"].(map[string]interface{}); ok {
+			if rx, ok := total["rx"].(float64); ok {
+				metrics.WriteString(fmt.Sprintf("vnstat_traffic_total_bytes{interface=\"%s\",direction=\"rx\"} %.0f\n", interfaceName, rx))
+			}
+			if tx, ok := total["tx"].(float64); ok {
+				metrics.WriteString(fmt.Sprintf("vnstat_traffic_total_bytes{interface=\"%s\",direction=\"tx\"} %.0f\n", interfaceName, tx))
+			}
+		}
+
+		// Monthly traffic
+		if month, ok := traffic["month"].([]interface{}); ok && len(month) > 0 {
+			if monthData, ok := month[0].(map[string]interface{}); ok {
+				if rx, ok := monthData["rx"].(float64); ok {
+					metrics.WriteString(fmt.Sprintf("vnstat_traffic_month_bytes{interface=\"%s\",direction=\"rx\"} %.0f\n", interfaceName, rx))
+				}
+				if tx, ok := monthData["tx"].(float64); ok {
+					metrics.WriteString(fmt.Sprintf("vnstat_traffic_month_bytes{interface=\"%s\",direction=\"tx\"} %.0f\n", interfaceName, tx))
+				}
+			}
+		}
+
+		// Today's traffic (from day array, last element is today)
+		if day, ok := traffic["day"].([]interface{}); ok && len(day) > 0 {
+			// Get the last element (today's data)
+			dayData, ok := day[len(day)-1].(map[string]interface{})
+			if ok {
+				if rx, ok := dayData["rx"].(float64); ok {
+					metrics.WriteString(fmt.Sprintf("vnstat_traffic_today_bytes{interface=\"%s\",direction=\"rx\"} %.0f\n", interfaceName, rx))
+				}
+				if tx, ok := dayData["tx"].(float64); ok {
+					metrics.WriteString(fmt.Sprintf("vnstat_traffic_today_bytes{interface=\"%s\",direction=\"tx\"} %.0f\n", interfaceName, tx))
+				}
+			}
+		}
+	}
+
+	return metrics.String()
 }
 
