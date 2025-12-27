@@ -5,9 +5,10 @@ metrics:
   configs:
     - name: vnstat
       # Grafana Cloud Prometheus remote write endpoint
-      # Replace with your Grafana Cloud endpoint
+      # Replace YOUR_PROMETHEUS_INSTANCE with your actual Grafana Cloud Prometheus instance URL
+      # You can find this in Grafana Cloud → My Account → Prometheus → Details → Remote Write URL
       remote_write:
-        - url: https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push
+        - url: https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push
           basic_auth:
             # Replace with your Grafana Cloud credentials
             username: YOUR_INSTANCE_ID

@@ -63,6 +63,10 @@ After compilation, binary files are located in the `bin/` directory:
 - `-port`: Listening port, default `8080`
 - `-token`: Authentication token, default empty (no authentication)
 - `-interface`: (Optional) Specify network interface name, default empty (query all)
+- `-grafana-url`: (Optional) Grafana Cloud Prometheus remote write URL. When set with `-grafana-user` and `-grafana-token`, enables automatic metrics pushing
+- `-grafana-user`: (Optional) Grafana Cloud instance ID
+- `-grafana-token`: (Optional) Grafana Cloud API token (requires `MetricsPublisher` role)
+- `-grafana-interval`: (Optional) Interval for pushing metrics to Grafana Cloud, default `30s`
 
 ## API Endpoints
 
@@ -274,7 +278,48 @@ For complete usage instructions, configuration options, and troubleshooting, ple
 
 The `/metrics` endpoint provides Prometheus-format metrics that can be easily integrated with Grafana Cloud.
 
-### Option 1: Using Grafana Agent
+### Option 1: Built-in Push (Recommended - Lightweight)
+
+The server includes built-in support for pushing metrics directly to Grafana Cloud. This is the most lightweight option with zero additional dependencies.
+
+**Usage**:
+
+```bash
+./vnstat-http-server \
+  -port 8080 \
+  -token your-token \
+  -grafana-url "https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push" \
+  -grafana-user "YOUR_INSTANCE_ID" \
+  -grafana-token "YOUR_API_TOKEN" \
+  -grafana-interval 30s
+```
+
+**Note**: Replace `YOUR_PROMETHEUS_INSTANCE` with your actual Grafana Cloud Prometheus instance URL. You can find this in Grafana Cloud → My Account → Prometheus → Details → Remote Write URL.
+
+**Features**:
+- Zero additional dependencies (no Agent, no scripts, no timers)
+- Automatic retry on failures
+- Immediate push on startup
+- Configurable push interval
+- Low resource usage (runs as a background goroutine)
+- Automatic `hostname` label for multi-server environments
+
+**Configuration in systemd service**:
+
+```ini
+[Service]
+ExecStart=/usr/local/bin/vnstat-http-server \
+  -port 8080 \
+  -token YOUR_TOKEN \
+  -grafana-url "https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push" \
+  -grafana-user "YOUR_INSTANCE_ID" \
+  -grafana-token "YOUR_API_TOKEN" \
+  -grafana-interval 30s
+```
+
+**Note**: Replace `YOUR_PROMETHEUS_INSTANCE` with your actual Grafana Cloud Prometheus instance URL.
+
+### Option 2: Using Grafana Agent
 
 1. **Install Grafana Agent** on your server:
    ```bash
@@ -291,7 +336,7 @@ The `/metrics` endpoint provides Prometheus-format metrics that can be easily in
      configs:
        - name: vnstat
          remote_write:
-           - url: https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push
+           - url: https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push
              basic_auth:
                username: YOUR_INSTANCE_ID
                password: YOUR_API_TOKEN
@@ -310,7 +355,7 @@ The `/metrics` endpoint provides Prometheus-format metrics that can be easily in
    sudo grafana-agent --config.file=/etc/grafana-agent/config.yaml
    ```
 
-### Option 2: Using Prometheus Remote Write
+### Option 3: Using Prometheus Remote Write
 
 If you're running Prometheus, you can configure it to scrape the `/metrics` endpoint and remote write to Grafana Cloud:
 
@@ -325,27 +370,68 @@ scrape_configs:
       token: ['your-vnstat-token']  # If token is enabled
 
 remote_write:
-  - url: https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push
+  - url: https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push
     basic_auth:
       username: YOUR_INSTANCE_ID
       password: YOUR_API_TOKEN
 ```
 
-### Option 3: Direct HTTP Push (Advanced)
+**Note**: Replace `YOUR_PROMETHEUS_INSTANCE` with your actual Grafana Cloud Prometheus instance URL.
 
-You can also create a script to periodically push metrics to Grafana Cloud using the Prometheus remote write API.
+### Option 4: Direct HTTP Push Script (Advanced)
+
+If you prefer to use external scripts, you can create a script to periodically push metrics to Grafana Cloud using the Prometheus remote write API.
 
 ### Creating Dashboards in Grafana
 
 Once metrics are flowing to Grafana Cloud, you can create dashboards using these queries:
 
-- **Total Traffic**: `sum(vnstat_traffic_total_bytes)`
-- **Monthly Traffic**: `sum(vnstat_traffic_month_bytes)`
-- **Today's Traffic**: `sum(vnstat_traffic_today_bytes)`
+**Note**: All metrics include a `hostname` label to distinguish between different servers. Metrics are stored in bytes, so you'll need to format them for display.
+
+#### Basic Queries
+
+- **Total Traffic (by hostname)**: `sum(vnstat_traffic_total_bytes) by (hostname)`
+- **Monthly Traffic (by hostname)**: `sum(vnstat_traffic_month_bytes) by (hostname)`
+- **Today's Traffic (by hostname)**: `sum(vnstat_traffic_today_bytes) by (hostname)`
 - **By Interface**: `vnstat_traffic_total_bytes{interface="eth0"}`
 - **Upload vs Download**: 
-  - Upload: `sum(vnstat_traffic_total_bytes{direction="tx"})`
-  - Download: `sum(vnstat_traffic_total_bytes{direction="rx"})`
+  - Upload: `sum(vnstat_traffic_total_bytes{direction="tx"}) by (hostname)`
+  - Download: `sum(vnstat_traffic_total_bytes{direction="rx"}) by (hostname)`
+
+#### Formatting Units in Grafana
+
+Since metrics are stored in bytes, you should format them for better readability. In Grafana, use unit formatting:
+
+1. **For Panel Display**:
+   - Go to Panel settings → Field → Unit
+   - Select: `Data rate` → `bytes(IEC)` or `bytes(SI)`
+   - Or use: `bytes/sec(IEC)` for rate queries
+
+2. **In Query (convert to GB)**:
+   ```promql
+   # Convert bytes to GB (divide by 1024^3)
+   sum(vnstat_traffic_total_bytes) by (hostname) / 1024 / 1024 / 1024
+   ```
+
+3. **Example Queries with Formatting**:
+   ```promql
+   # Total traffic in GB
+   sum(vnstat_traffic_total_bytes) by (hostname) / 1073741824
+   
+   # Monthly traffic in GB
+   sum(vnstat_traffic_month_bytes) by (hostname) / 1073741824
+   
+   # Today's traffic in MB
+   sum(vnstat_traffic_today_bytes) by (hostname) / 1048576
+   
+   # Traffic rate (bytes per second) - requires rate() function
+   rate(vnstat_traffic_total_bytes[5m]) by (hostname)
+   ```
+
+4. **Recommended Panel Settings**:
+   - **Unit**: `bytes(IEC)` or `bytes(SI)`
+   - **Decimals**: 2
+   - **Legend**: `{{hostname}} - {{direction}}`
 
 ### Getting Grafana Cloud Credentials
 

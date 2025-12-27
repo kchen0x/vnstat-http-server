@@ -63,6 +63,10 @@ make build
 - `-port`: 监听端口，默认 `8080`
 - `-token`: 访问鉴权 Token，默认为空（即不开启鉴权）
 - `-interface`: （可选）指定强制查询的网卡接口，默认为空（查询所有）
+- `-grafana-url`: （可选）Grafana Cloud Prometheus remote write URL。与 `-grafana-user` 和 `-grafana-token` 一起使用时，启用自动指标推送
+- `-grafana-user`: （可选）Grafana Cloud 实例 ID
+- `-grafana-token`: （可选）Grafana Cloud API 令牌（需要 `MetricsPublisher` 角色）
+- `-grafana-interval`: （可选）向 Grafana Cloud 推送指标的间隔，默认 `30s`
 
 ## API 接口
 
@@ -274,7 +278,48 @@ curl http://localhost:8080/health
 
 `/metrics` 接口提供 Prometheus 格式的指标数据，可以轻松与 Grafana Cloud 集成。
 
-### 方案 1：使用 Grafana Agent（推荐）
+### 方案 1：内置推送（推荐 - 轻量级）
+
+服务器内置了直接向 Grafana Cloud 推送指标的支持。这是最轻量级的方案，无需任何额外依赖。
+
+**使用方法**：
+
+```bash
+./vnstat-http-server \
+  -port 8080 \
+  -token your-token \
+  -grafana-url "https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push" \
+  -grafana-user "YOUR_INSTANCE_ID" \
+  -grafana-token "YOUR_API_TOKEN" \
+  -grafana-interval 30s
+```
+
+**注意**：将 `YOUR_PROMETHEUS_INSTANCE` 替换为你实际的 Grafana Cloud Prometheus 实例 URL。你可以在 Grafana Cloud → My Account → Prometheus → Details → Remote Write URL 中找到。
+
+**特性**：
+- 零额外依赖（无需 Agent、脚本或定时器）
+- 失败时自动重试
+- 启动时立即推送
+- 可配置推送间隔
+- 资源占用低（作为后台 goroutine 运行）
+- 自动添加 `hostname` 标签，支持多服务器环境
+
+**在 systemd 服务中配置**：
+
+```ini
+[Service]
+ExecStart=/usr/local/bin/vnstat-http-server \
+  -port 8080 \
+  -token YOUR_TOKEN \
+  -grafana-url "https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push" \
+  -grafana-user "YOUR_INSTANCE_ID" \
+  -grafana-token "YOUR_API_TOKEN" \
+  -grafana-interval 30s
+```
+
+**注意**：将 `YOUR_PROMETHEUS_INSTANCE` 替换为你实际的 Grafana Cloud Prometheus 实例 URL。
+
+### 方案 2：使用 Grafana Agent
 
 1. **在服务器上安装 Grafana Agent**：
    ```bash
@@ -291,7 +336,7 @@ curl http://localhost:8080/health
      configs:
        - name: vnstat
          remote_write:
-           - url: https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push
+           - url: https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push
              basic_auth:
                username: YOUR_INSTANCE_ID
                password: YOUR_API_TOKEN
@@ -310,7 +355,7 @@ curl http://localhost:8080/health
    sudo grafana-agent --config.file=/etc/grafana-agent/config.yaml
    ```
 
-### 方案 2：使用 Prometheus Remote Write
+### 方案 3：使用 Prometheus Remote Write
 
 如果你正在运行 Prometheus，可以配置它抓取 `/metrics` 接口并远程写入到 Grafana Cloud：
 
@@ -325,27 +370,68 @@ scrape_configs:
       token: ['your-vnstat-token']  # 如果启用了 token
 
 remote_write:
-  - url: https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push
+  - url: https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push
     basic_auth:
       username: YOUR_INSTANCE_ID
       password: YOUR_API_TOKEN
 ```
 
-### 方案 3：直接 HTTP 推送（高级）
+**注意**：将 `YOUR_PROMETHEUS_INSTANCE` 替换为你实际的 Grafana Cloud Prometheus 实例 URL。
 
-你也可以创建一个脚本，定期将指标推送到 Grafana Cloud 的 Prometheus remote write API。
+### 方案 4：直接 HTTP 推送脚本（高级）
+
+如果你更喜欢使用外部脚本，可以创建一个脚本，定期将指标推送到 Grafana Cloud 的 Prometheus remote write API。
 
 ### 在 Grafana 中创建仪表盘
 
 一旦指标数据流入 Grafana Cloud，你可以使用以下查询创建仪表盘：
 
-- **总流量**: `sum(vnstat_traffic_total_bytes)`
-- **月度流量**: `sum(vnstat_traffic_month_bytes)`
-- **今日流量**: `sum(vnstat_traffic_today_bytes)`
+**注意**：所有指标都包含 `hostname` 标签，用于区分不同的服务器。指标以字节（bytes）为单位存储，因此需要在显示时格式化。
+
+#### 基础查询
+
+- **总流量（按主机名）**: `sum(vnstat_traffic_total_bytes) by (hostname)`
+- **月度流量（按主机名）**: `sum(vnstat_traffic_month_bytes) by (hostname)`
+- **今日流量（按主机名）**: `sum(vnstat_traffic_today_bytes) by (hostname)`
 - **按接口**: `vnstat_traffic_total_bytes{interface="eth0"}`
 - **上传 vs 下载**: 
-  - 上传: `sum(vnstat_traffic_total_bytes{direction="tx"})`
-  - 下载: `sum(vnstat_traffic_total_bytes{direction="rx"})`
+  - 上传: `sum(vnstat_traffic_total_bytes{direction="tx"}) by (hostname)`
+  - 下载: `sum(vnstat_traffic_total_bytes{direction="rx"}) by (hostname)`
+
+#### 在 Grafana 中格式化单位
+
+由于指标以字节为单位存储，需要格式化以便更好地阅读。在 Grafana 中：
+
+1. **面板显示设置**：
+   - 进入面板设置 → Field → Unit
+   - 选择：`Data rate` → `bytes(IEC)` 或 `bytes(SI)`
+   - 或使用：`bytes/sec(IEC)` 用于速率查询
+
+2. **在查询中转换（转换为 GB）**：
+   ```promql
+   # 将字节转换为 GB（除以 1024^3）
+   sum(vnstat_traffic_total_bytes) by (hostname) / 1024 / 1024 / 1024
+   ```
+
+3. **格式化查询示例**：
+   ```promql
+   # 总流量（GB）
+   sum(vnstat_traffic_total_bytes) by (hostname) / 1073741824
+   
+   # 月度流量（GB）
+   sum(vnstat_traffic_month_bytes) by (hostname) / 1073741824
+   
+   # 今日流量（MB）
+   sum(vnstat_traffic_today_bytes) by (hostname) / 1048576
+   
+   # 流量速率（每秒字节数）- 需要使用 rate() 函数
+   rate(vnstat_traffic_total_bytes[5m]) by (hostname)
+   ```
+
+4. **推荐的面板设置**：
+   - **单位**: `bytes(IEC)` 或 `bytes(SI)`
+   - **小数位数**: 2
+   - **图例**: `{{hostname}} - {{direction}}`
 
 ### 获取 Grafana Cloud 凭证
 

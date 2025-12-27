@@ -6,6 +6,8 @@ After=network.target
 Type=simple
 User=root
 ExecStart=/usr/local/bin/vnstat-http-server -port 8080 -token YOUR_TOKEN_HERE
+# Optional: Enable Grafana Cloud push
+# ExecStart=/usr/local/bin/vnstat-http-server -port 8080 -token YOUR_TOKEN_HERE -grafana-url "https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push" -grafana-user "YOUR_INSTANCE_ID" -grafana-token "YOUR_API_TOKEN" -grafana-interval 30s
 Restart=always
 RestartSec=5
 StandardOutput=journal
