@@ -22,7 +22,7 @@ A lightweight single-file tool written in Go that exposes vnstat statistics from
 
 Pre-built binaries are available in [Releases](https://github.com/kchen0x/vnstat-http-server/releases).
 
-**Latest Release**: [v0.1](https://github.com/kchen0x/vnstat-http-server/releases/tag/v0.1)
+**Latest Release**: [Latest](https://github.com/kchen0x/vnstat-http-server/releases/latest)
 
 Download the appropriate binary for your system:
 - `vnstat-http-server-linux-amd64` - For Linux x86_64 systems

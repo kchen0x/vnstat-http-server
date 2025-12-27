@@ -22,7 +22,7 @@
 
 预编译的二进制文件可在 [Releases](https://github.com/kchen0x/vnstat-http-server/releases) 页面下载。
 
-**最新版本**: [v0.1](https://github.com/kchen0x/vnstat-http-server/releases/tag/v0.1)
+**最新版本**: [Latest](https://github.com/kchen0x/vnstat-http-server/releases/latest)
 
 根据你的系统下载对应的二进制文件：
 - `vnstat-http-server-linux-amd64` - 适用于 Linux x86_64 系统
