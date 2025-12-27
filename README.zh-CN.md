@@ -1,5 +1,15 @@
 # vnstat-http-server
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org/)
+[![GitHub release](https://img.shields.io/github/release/kchen0x/vnstat-http-server.svg)](https://github.com/kchen0x/vnstat-http-server/releases/latest)
+[![GitHub stars](https://img.shields.io/github/stars/kchen0x/vnstat-http-server.svg?style=social&label=Star)](https://github.com/kchen0x/vnstat-http-server)
+[![GitHub forks](https://img.shields.io/github/forks/kchen0x/vnstat-http-server.svg?style=social&label=Fork)](https://github.com/kchen0x/vnstat-http-server)
+
+**语言 / Language**: [中文](README.zh-CN.md) | [English](README.md)
+
+---
+
 一个基于 Go 语言的轻量级单文件工具，用于将 Linux 服务器上的 vnstat 统计数据通过 HTTP 接口暴露出来，方便手机 App、前端网页、脚本以及 Grafana Cloud 等监控系统进行远程监控。
 
 ## 特性
