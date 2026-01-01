@@ -480,18 +480,17 @@ show_menu() {
     fi
     
     echo ""
-    while true; do
-        read -p "请输入选项 [0-5]: " choice
-        
-        # 处理空输入
-        if [ -z "$choice" ]; then
-            echo -e "${YELLOW}请输入有效选项${NC}"
-            continue
-        fi
-        
-        # 如果输入有效，跳出循环
-        break
-    done
+    # 直接读取输入，不使用循环
+    # 如果 stdin 不是终端，read 会失败或返回空，但不会无限循环
+    read -p "请输入选项 [0-5]: " choice || choice=""
+    
+    # 处理空输入或无效输入
+    if [ -z "$choice" ]; then
+        echo -e "${RED}无效选项，请重新选择${NC}"
+        sleep 1
+        show_menu
+        return
+    fi
     
     case $choice in
         1)

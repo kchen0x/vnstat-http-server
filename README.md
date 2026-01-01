@@ -38,12 +38,12 @@ A lightweight single-file tool written in Go that exposes vnstat statistics from
 
 The easiest way to install, upgrade, configure, and uninstall vnstat-http-server:
 
-**Interactive Menu (Simplest):**
+**Interactive Menu (Recommended):**
 
-Just run the script without any arguments to enter the interactive menu:
+Download, make executable, and run in one command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh
 ```
 
 The script will display a menu where you can select:
@@ -59,20 +59,31 @@ The script will display a menu where you can select:
 You can also run specific commands directly:
 
 ```bash
+# Interactive menu
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh
+
 # Install
-curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s install
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh install
 
 # Upgrade to latest version
-curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s upgrade
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh upgrade
 
 # Configure (modify settings)
-curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s configure
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh configure
 
 # Check status
-curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s status
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh status
 
 # Uninstall
-curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s uninstall
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh uninstall
+```
+
+**Alternative: One-line Installation (Non-interactive):**
+
+If you prefer one-line installation for non-interactive use:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s install
 ```
 
 **What the script does:**

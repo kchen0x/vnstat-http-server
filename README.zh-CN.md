@@ -38,12 +38,12 @@
 
 最简单的方式，支持安装、升级、配置和卸载：
 
-**交互式菜单（最简单）：**
+**交互式菜单（推荐）：**
 
-直接运行脚本（不带参数）即可进入交互式菜单：
+一个命令完成下载、赋予执行权限并运行：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh
 ```
 
 脚本会显示菜单，您可以选择：
@@ -59,20 +59,31 @@ curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/ins
 您也可以直接运行特定命令：
 
 ```bash
+# 交互式菜单
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh
+
 # 安装
-curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s install
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh install
 
 # 升级到最新版本
-curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s upgrade
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh upgrade
 
 # 配置（修改设置）
-curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s configure
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh configure
 
 # 查看状态
-curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s status
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh status
 
 # 卸载
-curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s uninstall
+curl -fsSL -o install.sh https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh && chmod +x install.sh && ./install.sh uninstall
+```
+
+**替代方案：一行安装（非交互式）：**
+
+如果您偏好非交互式的一行安装：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s install
 ```
 
 **脚本功能：**
