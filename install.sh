@@ -79,10 +79,17 @@ check_vnstat() {
     if ! command -v vnstat &> /dev/null; then
         echo -e "${YELLOW}警告: 未检测到 vnstat，请先安装 vnstat${NC}"
         echo -e "安装方法: ${BLUE}https://humdi.net/vnstat/${NC}"
-        read -p "是否继续安装? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            return 1
+        
+        # 如果是交互式终端，询问用户
+        if is_interactive_terminal; then
+            read -p "是否继续安装? (y/N): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                return 1
+            fi
+        else
+            # 非交互式环境，默认继续
+            echo -e "${YELLOW}非交互式环境，继续安装...${NC}"
         fi
     fi
     return 0
@@ -222,11 +229,17 @@ uninstall() {
         exit 0
     fi
     
-    read -p "确定要卸载 vnstat-http-server? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${BLUE}已取消${NC}"
-        exit 0
+    # 如果是交互式终端，询问用户
+    if is_interactive_terminal; then
+        read -p "确定要卸载 vnstat-http-server? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${BLUE}已取消${NC}"
+            return 0
+        fi
+    else
+        # 非交互式环境，直接卸载
+        echo -e "${YELLOW}非交互式环境，确认卸载...${NC}"
     fi
     
     # 停止并禁用服务
@@ -253,82 +266,110 @@ uninstall() {
     
     # 删除配置文件（可选）
     if [ -f "${CONFIG_FILE}" ]; then
-        read -p "是否删除配置文件 ${CONFIG_FILE}? (y/N): " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            ${SUDO} rm -f "${CONFIG_FILE}"
+        if is_interactive_terminal; then
+            read -p "是否删除配置文件 ${CONFIG_FILE}? (y/N): " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                ${SUDO} rm -f "${CONFIG_FILE}"
+            fi
+        else
+            # 非交互式环境，保留配置文件
+            echo -e "${YELLOW}非交互式环境，保留配置文件${NC}"
         fi
     fi
     
     echo -e "${GREEN}卸载完成！${NC}"
 }
 
+# 检查是否为交互式终端
+is_interactive_terminal() {
+    [ -t 0 ] && [ -t 1 ]
+}
+
 # 交互式配置
 configure() {
     echo -e "${GREEN}=== 配置 vnstat-http-server ===${NC}"
     
-    # 读取现有配置（如果存在）
-    local port="8080"
-    local token=""
-    local interface=""
-    local grafana_url=""
-    local grafana_user=""
-    local grafana_token=""
-    local grafana_interval="30s"
-    
-    if [ -f "${CONFIG_FILE}" ]; then
-        source "${CONFIG_FILE}"
-    fi
-    
-    # 配置端口
-    echo -e "${BLUE}配置 HTTP 端口 (默认: 8080):${NC}"
-    read -p "端口: " input_port
-    if [ -n "$input_port" ]; then
-        port="$input_port"
-    fi
-    
-    # 配置 Token
-    echo -e "${BLUE}配置认证 Token (留空禁用认证):${NC}"
-    read -p "Token: " input_token
-    if [ -n "$input_token" ]; then
-        token="$input_token"
-    fi
-    
-    # 配置网络接口
-    echo -e "${BLUE}配置网络接口 (留空监控所有接口):${NC}"
-    read -p "接口名称 (如 eth0): " input_interface
-    if [ -n "$input_interface" ]; then
-        interface="$input_interface"
-    fi
-    
-    # 配置 Grafana Cloud
-    echo -e "${BLUE}是否启用 Grafana Cloud 推送? (y/N):${NC}"
-    read -p "启用: " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${BLUE}Grafana Cloud Remote Write URL:${NC}"
-        echo -e "${YELLOW}示例: https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push${NC}"
-        read -p "URL: " input_grafana_url
-        if [ -n "$input_grafana_url" ]; then
-            grafana_url="$input_grafana_url"
+    # 检查是否为交互式终端
+    if ! is_interactive_terminal; then
+        echo -e "${YELLOW}非交互式环境，使用默认配置${NC}"
+        # 使用默认配置
+        local port="8080"
+        local token=""
+        local interface=""
+        local grafana_url=""
+        local grafana_user=""
+        local grafana_token=""
+        local grafana_interval="30s"
+        
+        # 如果存在配置文件，读取现有配置
+        if [ -f "${CONFIG_FILE}" ]; then
+            source "${CONFIG_FILE}"
+        fi
+    else
+        # 读取现有配置（如果存在）
+        local port="8080"
+        local token=""
+        local interface=""
+        local grafana_url=""
+        local grafana_user=""
+        local grafana_token=""
+        local grafana_interval="30s"
+        
+        if [ -f "${CONFIG_FILE}" ]; then
+            source "${CONFIG_FILE}"
         fi
         
-        echo -e "${BLUE}Grafana Cloud Instance ID:${NC}"
-        read -p "Instance ID: " input_grafana_user
-        if [ -n "$input_grafana_user" ]; then
-            grafana_user="$input_grafana_user"
+        # 配置端口
+        echo -e "${BLUE}配置 HTTP 端口 (默认: 8080):${NC}"
+        read -p "端口: " input_port
+        if [ -n "$input_port" ]; then
+            port="$input_port"
         fi
         
-        echo -e "${BLUE}Grafana Cloud API Token:${NC}"
-        read -p "API Token: " input_grafana_token
-        if [ -n "$input_grafana_token" ]; then
-            grafana_token="$input_grafana_token"
+        # 配置 Token
+        echo -e "${BLUE}配置认证 Token (留空禁用认证):${NC}"
+        read -p "Token: " input_token
+        if [ -n "$input_token" ]; then
+            token="$input_token"
         fi
         
-        echo -e "${BLUE}推送间隔 (默认: 30s):${NC}"
-        read -p "间隔: " input_grafana_interval
-        if [ -n "$input_grafana_interval" ]; then
-            grafana_interval="$input_grafana_interval"
+        # 配置网络接口
+        echo -e "${BLUE}配置网络接口 (留空监控所有接口):${NC}"
+        read -p "接口名称 (如 eth0): " input_interface
+        if [ -n "$input_interface" ]; then
+            interface="$input_interface"
+        fi
+        
+        # 配置 Grafana Cloud
+        echo -e "${BLUE}是否启用 Grafana Cloud 推送? (y/N):${NC}"
+        read -p "启用: " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${BLUE}Grafana Cloud Remote Write URL:${NC}"
+            echo -e "${YELLOW}示例: https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push${NC}"
+            read -p "URL: " input_grafana_url
+            if [ -n "$input_grafana_url" ]; then
+                grafana_url="$input_grafana_url"
+            fi
+            
+            echo -e "${BLUE}Grafana Cloud Instance ID:${NC}"
+            read -p "Instance ID: " input_grafana_user
+            if [ -n "$input_grafana_user" ]; then
+                grafana_user="$input_grafana_user"
+            fi
+            
+            echo -e "${BLUE}Grafana Cloud API Token:${NC}"
+            read -p "API Token: " input_grafana_token
+            if [ -n "$input_grafana_token" ]; then
+                grafana_token="$input_grafana_token"
+            fi
+            
+            echo -e "${BLUE}推送间隔 (默认: 30s):${NC}"
+            read -p "间隔: " input_grafana_interval
+            if [ -n "$input_grafana_interval" ]; then
+                grafana_interval="$input_grafana_interval"
+            fi
         fi
     fi
     
@@ -439,15 +480,18 @@ show_menu() {
     fi
     
     echo ""
-    read -p "请输入选项 [0-5]: " choice
-    
-    # 处理空输入或无效输入
-    if [ -z "$choice" ]; then
-        echo -e "${RED}无效选项，请重新选择${NC}"
-        sleep 1
-        show_menu
-        return
-    fi
+    while true; do
+        read -p "请输入选项 [0-5]: " choice
+        
+        # 处理空输入
+        if [ -z "$choice" ]; then
+            echo -e "${YELLOW}请输入有效选项${NC}"
+            continue
+        fi
+        
+        # 如果输入有效，跳出循环
+        break
+    done
     
     case $choice in
         1)
