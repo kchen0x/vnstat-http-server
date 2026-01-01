@@ -290,55 +290,50 @@ is_interactive_terminal() {
 configure() {
     echo -e "${GREEN}=== 配置 vnstat-http-server ===${NC}"
     
+    # 读取现有配置（如果存在）
+    PORT="8080"
+    TOKEN=""
+    INTERFACE=""
+    GRAFANA_URL=""
+    GRAFANA_USER=""
+    GRAFANA_TOKEN=""
+    GRAFANA_INTERVAL="30s"
+    
+    if [ -f "${CONFIG_FILE}" ]; then
+        source "${CONFIG_FILE}"
+        # 确保变量有值（兼容旧配置文件）
+        PORT="${PORT:-8080}"
+        TOKEN="${TOKEN:-}"
+        INTERFACE="${INTERFACE:-}"
+        GRAFANA_URL="${GRAFANA_URL:-}"
+        GRAFANA_USER="${GRAFANA_USER:-}"
+        GRAFANA_TOKEN="${GRAFANA_TOKEN:-}"
+        GRAFANA_INTERVAL="${GRAFANA_INTERVAL:-30s}"
+    fi
+    
     # 检查是否为交互式终端
     if ! is_interactive_terminal; then
         echo -e "${YELLOW}非交互式环境，使用默认配置${NC}"
-        # 使用默认配置
-        local port="8080"
-        local token=""
-        local interface=""
-        local grafana_url=""
-        local grafana_user=""
-        local grafana_token=""
-        local grafana_interval="30s"
-        
-        # 如果存在配置文件，读取现有配置
-        if [ -f "${CONFIG_FILE}" ]; then
-            source "${CONFIG_FILE}"
-        fi
     else
-        # 读取现有配置（如果存在）
-        local port="8080"
-        local token=""
-        local interface=""
-        local grafana_url=""
-        local grafana_user=""
-        local grafana_token=""
-        local grafana_interval="30s"
-        
-        if [ -f "${CONFIG_FILE}" ]; then
-            source "${CONFIG_FILE}"
-        fi
-        
         # 配置端口
-        echo -e "${BLUE}配置 HTTP 端口 (默认: 8080):${NC}"
+        echo -e "${BLUE}配置 HTTP 端口 (默认: ${PORT}):${NC}"
         read -p "端口: " input_port
         if [ -n "$input_port" ]; then
-            port="$input_port"
+            PORT="$input_port"
         fi
         
         # 配置 Token
         echo -e "${BLUE}配置认证 Token (留空禁用认证):${NC}"
         read -p "Token: " input_token
         if [ -n "$input_token" ]; then
-            token="$input_token"
+            TOKEN="$input_token"
         fi
         
         # 配置网络接口
         echo -e "${BLUE}配置网络接口 (留空监控所有接口):${NC}"
         read -p "接口名称 (如 eth0): " input_interface
         if [ -n "$input_interface" ]; then
-            interface="$input_interface"
+            INTERFACE="$input_interface"
         fi
         
         # 配置 Grafana Cloud
@@ -350,25 +345,25 @@ configure() {
             echo -e "${YELLOW}示例: https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push${NC}"
             read -p "URL: " input_grafana_url
             if [ -n "$input_grafana_url" ]; then
-                grafana_url="$input_grafana_url"
+                GRAFANA_URL="$input_grafana_url"
             fi
             
             echo -e "${BLUE}Grafana Cloud Instance ID:${NC}"
             read -p "Instance ID: " input_grafana_user
             if [ -n "$input_grafana_user" ]; then
-                grafana_user="$input_grafana_user"
+                GRAFANA_USER="$input_grafana_user"
             fi
             
             echo -e "${BLUE}Grafana Cloud API Token:${NC}"
             read -p "API Token: " input_grafana_token
             if [ -n "$input_grafana_token" ]; then
-                grafana_token="$input_grafana_token"
+                GRAFANA_TOKEN="$input_grafana_token"
             fi
             
-            echo -e "${BLUE}推送间隔 (默认: 30s):${NC}"
+            echo -e "${BLUE}推送间隔 (默认: ${GRAFANA_INTERVAL}):${NC}"
             read -p "间隔: " input_grafana_interval
             if [ -n "$input_grafana_interval" ]; then
-                grafana_interval="$input_grafana_interval"
+                GRAFANA_INTERVAL="$input_grafana_interval"
             fi
         fi
     fi
@@ -379,13 +374,13 @@ configure() {
 # vnstat-http-server 配置文件
 # 生成时间: $(date)
 
-PORT="${port}"
-TOKEN="${token}"
-INTERFACE="${interface}"
-GRAFANA_URL="${grafana_url}"
-GRAFANA_USER="${grafana_user}"
-GRAFANA_TOKEN="${grafana_token}"
-GRAFANA_INTERVAL="${grafana_interval}"
+PORT="${PORT}"
+TOKEN="${TOKEN}"
+INTERFACE="${INTERFACE}"
+GRAFANA_URL="${GRAFANA_URL}"
+GRAFANA_USER="${GRAFANA_USER}"
+GRAFANA_TOKEN="${GRAFANA_TOKEN}"
+GRAFANA_INTERVAL="${GRAFANA_INTERVAL}"
 EOF
     
     ${SUDO} chmod 600 "${CONFIG_FILE}"
