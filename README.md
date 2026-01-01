@@ -34,6 +34,82 @@ A lightweight single-file tool written in Go that exposes vnstat statistics from
 
 ## Quick Start
 
+### Option 1: One-Click Installation Script (Recommended)
+
+The easiest way to install, upgrade, configure, and uninstall vnstat-http-server:
+
+**Interactive Menu (Simplest):**
+
+Just run the script without any arguments to enter the interactive menu:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash
+```
+
+The script will display a menu where you can select:
+- Install vnstat-http-server
+- View service status
+- Upgrade to latest version
+- Configure service parameters
+- Uninstall vnstat-http-server
+- View help
+
+**Command Line Mode (Advanced):**
+
+You can also run specific commands directly:
+
+```bash
+# Install
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s install
+
+# Upgrade to latest version
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s upgrade
+
+# Configure (modify settings)
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s configure
+
+# Check status
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s status
+
+# Uninstall
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s uninstall
+```
+
+**What the script does:**
+- Automatically detects your system architecture (amd64/arm64)
+- Downloads the latest release from GitHub
+- Installs the binary to `/usr/local/bin`
+- Creates and configures a systemd service
+- Handles service start/stop/restart automatically
+- Provides interactive configuration for all parameters
+
+**Installation Process:**
+1. The script will check if `vnstat` is installed (warns if not found)
+2. Downloads the latest binary for your architecture
+3. Prompts for configuration:
+   - HTTP port (default: 8080)
+   - Authentication token (optional)
+   - Network interface (optional, monitors all if empty)
+   - Grafana Cloud push settings (optional)
+4. Creates systemd service and starts it automatically
+
+**Configuration File:**
+The script saves configuration to `/etc/vnstat-http-server.conf`. You can edit this file manually or run `configure` again to modify settings.
+
+**After Installation:**
+```bash
+# View service status
+sudo systemctl status vnstat-server
+
+# View logs
+sudo journalctl -u vnstat-server -f
+
+# Restart service
+sudo systemctl restart vnstat-server
+```
+
+### Option 2: Manual Installation
+
 ### 1. Download Pre-built Binaries
 
 Pre-built binaries are available in [Releases](https://github.com/kchen0x/vnstat-http-server/releases).

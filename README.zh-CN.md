@@ -34,6 +34,82 @@
 
 ## 快速开始
 
+### 方式一：一键安装脚本（推荐）
+
+最简单的方式，支持安装、升级、配置和卸载：
+
+**交互式菜单（最简单）：**
+
+直接运行脚本（不带参数）即可进入交互式菜单：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash
+```
+
+脚本会显示菜单，您可以选择：
+- 安装 vnstat-http-server
+- 查看服务状态
+- 升级到最新版本
+- 配置服务参数
+- 卸载 vnstat-http-server
+- 查看帮助
+
+**命令行模式（高级）：**
+
+您也可以直接运行特定命令：
+
+```bash
+# 安装
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s install
+
+# 升级到最新版本
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s upgrade
+
+# 配置（修改设置）
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s configure
+
+# 查看状态
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s status
+
+# 卸载
+curl -fsSL https://raw.githubusercontent.com/kchen0x/vnstat-http-server/main/install.sh | bash -s uninstall
+```
+
+**脚本功能：**
+- 自动检测系统架构（amd64/arm64）
+- 从 GitHub 下载最新版本
+- 安装二进制文件到 `/usr/local/bin`
+- 创建并配置 systemd 服务
+- 自动处理服务的启动/停止/重启
+- 提供交互式配置界面
+
+**安装流程：**
+1. 脚本会检查是否已安装 `vnstat`（未找到会警告）
+2. 下载适合您系统架构的最新二进制文件
+3. 交互式配置：
+   - HTTP 端口（默认：8080）
+   - 认证 Token（可选）
+   - 网络接口（可选，留空则监控所有接口）
+   - Grafana Cloud 推送设置（可选）
+4. 创建 systemd 服务并自动启动
+
+**配置文件：**
+脚本会将配置保存到 `/etc/vnstat-http-server.conf`。您可以手动编辑此文件，或再次运行 `configure` 来修改设置。
+
+**安装后：**
+```bash
+# 查看服务状态
+sudo systemctl status vnstat-server
+
+# 查看日志
+sudo journalctl -u vnstat-server -f
+
+# 重启服务
+sudo systemctl restart vnstat-server
+```
+
+### 方式二：手动安装
+
 ### 1. 下载预编译二进制文件
 
 预编译的二进制文件可在 [Releases](https://github.com/kchen0x/vnstat-http-server/releases) 页面下载。
