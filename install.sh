@@ -62,8 +62,9 @@ download_binary() {
     local url=$(get_download_url $arch $version)
     local temp_file=$(mktemp)
     
-    echo -e "${BLUE}正在下载 vnstat-http-server ${version}...${NC}"
-    if curl -L -f -o "$temp_file" "$url"; then
+    # 将提示信息输出到 stderr，避免被命令替换捕获
+    echo -e "${BLUE}正在下载 vnstat-http-server ${version}...${NC}" >&2
+    if curl -L -f -s -o "$temp_file" "$url" 2>/dev/null; then
         echo "$temp_file"
     else
         echo -e "${RED}下载失败: $url${NC}" >&2
