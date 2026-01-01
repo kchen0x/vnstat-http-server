@@ -20,6 +20,13 @@ SERVICE_NAME="vnstat-server"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 CONFIG_FILE="/etc/vnstat-http-server.conf"
 
+# 检测是否为 root 用户，如果是 root 就不使用 sudo
+if [ "$(id -u)" -eq 0 ]; then
+    SUDO=""
+else
+    SUDO="sudo"
+fi
+
 # 检测系统架构
 detect_arch() {
     local arch=$(uname -m)
@@ -115,8 +122,8 @@ install() {
     
     # 安装二进制文件
     echo -e "${BLUE}正在安装到 ${INSTALL_DIR}...${NC}"
-    sudo mv "$temp_file" "${INSTALL_DIR}/${BINARY_NAME}"
-    sudo chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
+    ${SUDO} mv "$temp_file" "${INSTALL_DIR}/${BINARY_NAME}"
+    ${SUDO} chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
     
     echo -e "${GREEN}二进制文件安装完成${NC}"
     
@@ -128,13 +135,13 @@ install() {
     
     # 启动服务
     echo -e "${BLUE}正在启动服务...${NC}"
-    sudo systemctl daemon-reload
-    sudo systemctl enable ${SERVICE_NAME}
-    sudo systemctl start ${SERVICE_NAME}
+    ${SUDO} systemctl daemon-reload
+    ${SUDO} systemctl enable ${SERVICE_NAME}
+    ${SUDO} systemctl start ${SERVICE_NAME}
     
     echo -e "${GREEN}安装完成！${NC}"
     echo -e "${BLUE}服务状态:${NC}"
-    sudo systemctl status ${SERVICE_NAME} --no-pager -l
+    ${SUDO} systemctl status ${SERVICE_NAME} --no-pager -l
 }
 
 # 升级
@@ -170,34 +177,34 @@ upgrade() {
     # 停止服务
     if systemctl is-active --quiet ${SERVICE_NAME}; then
         echo -e "${BLUE}正在停止服务...${NC}"
-        sudo systemctl stop ${SERVICE_NAME}
+        ${SUDO} systemctl stop ${SERVICE_NAME}
     fi
     
     # 备份旧版本
     if [ -f "${INSTALL_DIR}/${BINARY_NAME}" ]; then
         echo -e "${BLUE}备份旧版本...${NC}"
-        sudo cp "${INSTALL_DIR}/${BINARY_NAME}" "${INSTALL_DIR}/${BINARY_NAME}.bak"
+        ${SUDO} cp "${INSTALL_DIR}/${BINARY_NAME}" "${INSTALL_DIR}/${BINARY_NAME}.bak"
     fi
     
     # 安装新版本
     echo -e "${BLUE}正在安装新版本...${NC}"
-    sudo mv "$temp_file" "${INSTALL_DIR}/${BINARY_NAME}"
-    sudo chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
+    ${SUDO} mv "$temp_file" "${INSTALL_DIR}/${BINARY_NAME}"
+    ${SUDO} chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
     
     # 启动服务
     echo -e "${BLUE}正在启动服务...${NC}"
-    sudo systemctl daemon-reload
-    sudo systemctl start ${SERVICE_NAME}
+    ${SUDO} systemctl daemon-reload
+    ${SUDO} systemctl start ${SERVICE_NAME}
     
     # 删除备份
     if [ -f "${INSTALL_DIR}/${BINARY_NAME}.bak" ]; then
         echo -e "${BLUE}删除备份文件...${NC}"
-        sudo rm -f "${INSTALL_DIR}/${BINARY_NAME}.bak"
+        ${SUDO} rm -f "${INSTALL_DIR}/${BINARY_NAME}.bak"
     fi
     
     echo -e "${GREEN}升级完成！${NC}"
     echo -e "${BLUE}服务状态:${NC}"
-    sudo systemctl status ${SERVICE_NAME} --no-pager -l
+    ${SUDO} systemctl status ${SERVICE_NAME} --no-pager -l
 }
 
 # 卸载
@@ -220,31 +227,31 @@ uninstall() {
     # 停止并禁用服务
     if systemctl is-active --quiet ${SERVICE_NAME}; then
         echo -e "${BLUE}正在停止服务...${NC}"
-        sudo systemctl stop ${SERVICE_NAME}
+        ${SUDO} systemctl stop ${SERVICE_NAME}
     fi
     
     if systemctl is-enabled --quiet ${SERVICE_NAME} 2>/dev/null; then
         echo -e "${BLUE}正在禁用服务...${NC}"
-        sudo systemctl disable ${SERVICE_NAME}
+        ${SUDO} systemctl disable ${SERVICE_NAME}
     fi
     
     # 删除服务文件
     if [ -f "${SERVICE_FILE}" ]; then
         echo -e "${BLUE}正在删除服务文件...${NC}"
-        sudo rm -f "${SERVICE_FILE}"
-        sudo systemctl daemon-reload
+        ${SUDO} rm -f "${SERVICE_FILE}"
+        ${SUDO} systemctl daemon-reload
     fi
     
     # 删除二进制文件
     echo -e "${BLUE}正在删除二进制文件...${NC}"
-    sudo rm -f "${INSTALL_DIR}/${BINARY_NAME}"
+    ${SUDO} rm -f "${INSTALL_DIR}/${BINARY_NAME}"
     
     # 删除配置文件（可选）
     if [ -f "${CONFIG_FILE}" ]; then
         read -p "是否删除配置文件 ${CONFIG_FILE}? (y/N): " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            sudo rm -f "${CONFIG_FILE}"
+            ${SUDO} rm -f "${CONFIG_FILE}"
         fi
     fi
     
@@ -322,7 +329,7 @@ configure() {
     
     # 保存配置
     echo -e "${BLUE}正在保存配置...${NC}"
-    sudo tee "${CONFIG_FILE}" > /dev/null <<EOF
+    ${SUDO} tee "${CONFIG_FILE}" > /dev/null <<EOF
 # vnstat-http-server 配置文件
 # 生成时间: $(date)
 
@@ -335,7 +342,7 @@ GRAFANA_TOKEN="${grafana_token}"
 GRAFANA_INTERVAL="${grafana_interval}"
 EOF
     
-    sudo chmod 600 "${CONFIG_FILE}"
+    ${SUDO} chmod 600 "${CONFIG_FILE}"
     echo -e "${GREEN}配置已保存到 ${CONFIG_FILE}${NC}"
 }
 
@@ -367,7 +374,7 @@ create_service() {
     fi
     
     # 创建服务文件
-    sudo tee "${SERVICE_FILE}" > /dev/null <<EOF
+    ${SUDO} tee "${SERVICE_FILE}" > /dev/null <<EOF
 [Unit]
 Description=vnstat HTTP Server
 After=network.target
@@ -388,21 +395,8 @@ EOF
     echo -e "${GREEN}服务文件已创建: ${SERVICE_FILE}${NC}"
 }
 
-# 检查是否为交互式终端
-is_interactive() {
-    [ -t 0 ] && [ -t 1 ]
-}
-
 # 显示交互式菜单
 show_menu() {
-    # 检查是否为交互式终端
-    if ! is_interactive; then
-        echo -e "${YELLOW}非交互式环境，请使用命令行参数模式${NC}"
-        echo ""
-        usage
-        exit 1
-    fi
-    
     # 清屏（如果支持）
     if command -v clear &> /dev/null; then
         clear 2>/dev/null || true
@@ -472,9 +466,9 @@ show_menu() {
                 if [ -f "${SERVICE_FILE}" ]; then
                     echo -e "${BLUE}正在重新加载服务配置...${NC}"
                     create_service
-                    sudo systemctl daemon-reload
+                    ${SUDO} systemctl daemon-reload
                     if systemctl is-active --quiet ${SERVICE_NAME}; then
-                        sudo systemctl restart ${SERVICE_NAME}
+                        ${SUDO} systemctl restart ${SERVICE_NAME}
                         echo -e "${GREEN}服务已重启${NC}"
                     fi
                 fi
@@ -570,7 +564,7 @@ show_status() {
     
     if systemctl list-unit-files | grep -q "${SERVICE_NAME}.service"; then
         echo -e "${BLUE}服务状态:${NC}"
-        sudo systemctl status ${SERVICE_NAME} --no-pager -l
+        ${SUDO} systemctl status ${SERVICE_NAME} --no-pager -l
     else
         echo -e "${YELLOW}服务未配置${NC}"
     fi
@@ -578,24 +572,10 @@ show_status() {
 
 # 主函数
 main() {
-    # 如果没有参数，检查是否为交互式终端
+    # 如果没有参数，显示交互式菜单
     if [ -z "${1:-}" ]; then
-        if is_interactive; then
-            # 交互式终端，显示菜单
-            show_menu
-            return
-        else
-            # 非交互式终端（如通过管道执行），显示帮助并提示使用参数
-            echo -e "${YELLOW}检测到非交互式环境${NC}"
-            echo ""
-            usage
-            echo ""
-            echo -e "${BLUE}提示: 使用以下命令直接执行操作:${NC}"
-            echo -e "  curl -fsSL ... | bash -s install"
-            echo -e "  curl -fsSL ... | bash -s upgrade"
-            echo -e "  curl -fsSL ... | bash -s status"
-            exit 1
-        fi
+        show_menu
+        return
     fi
     
     # 如果有参数，执行对应命令
@@ -614,9 +594,9 @@ main() {
             if [ -f "${SERVICE_FILE}" ]; then
                 echo -e "${BLUE}正在重新加载服务配置...${NC}"
                 create_service
-                sudo systemctl daemon-reload
+                ${SUDO} systemctl daemon-reload
                 if systemctl is-active --quiet ${SERVICE_NAME}; then
-                    sudo systemctl restart ${SERVICE_NAME}
+                    ${SUDO} systemctl restart ${SERVICE_NAME}
                     echo -e "${GREEN}服务已重启${NC}"
                 fi
             fi
