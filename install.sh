@@ -404,6 +404,15 @@ create_service() {
     
     source "${CONFIG_FILE}"
     
+    # 设置默认值（如果配置文件中没有设置或为空）
+    PORT="${PORT:-8080}"
+    TOKEN="${TOKEN:-}"
+    INTERFACE="${INTERFACE:-}"
+    GRAFANA_URL="${GRAFANA_URL:-}"
+    GRAFANA_USER="${GRAFANA_USER:-}"
+    GRAFANA_TOKEN="${GRAFANA_TOKEN:-}"
+    GRAFANA_INTERVAL="${GRAFANA_INTERVAL:-30s}"
+    
     # 构建 ExecStart 命令
     local exec_start="${INSTALL_DIR}/${BINARY_NAME} -port ${PORT}"
     
