@@ -3,7 +3,8 @@
 # vnstat-http-server 一键安装脚本
 # 支持安装、升级、卸载、配置
 
-set -e
+# 注意：不使用 set -e，因为我们需要在菜单中处理错误并继续
+# set -e
 
 # 颜色定义
 RED='\033[0;31m'
@@ -69,7 +70,7 @@ download_binary() {
     else
         echo -e "${RED}下载失败: $url${NC}" >&2
         rm -f "$temp_file"
-        exit 1
+        return 1
     fi
 }
 
@@ -81,9 +82,10 @@ check_vnstat() {
         read -p "是否继续安装? (y/N): " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            exit 1
+            return 1
         fi
     fi
+    return 0
 }
 
 # 安装
@@ -93,17 +95,19 @@ install() {
     # 检查是否已安装
     if [ -f "${INSTALL_DIR}/${BINARY_NAME}" ]; then
         echo -e "${YELLOW}检测到已安装的版本，请使用 'upgrade' 命令升级${NC}"
-        exit 1
+        return 1
     fi
     
     # 检查 vnstat
-    check_vnstat
+    if ! check_vnstat; then
+        return 1
+    fi
     
     # 检测架构
     local arch=$(detect_arch)
     if [ "$arch" = "unsupported" ]; then
         echo -e "${RED}不支持的系统架构: $(uname -m)${NC}"
-        exit 1
+        return 1
     fi
     
     echo -e "${BLUE}检测到系统架构: ${arch}${NC}"
@@ -113,7 +117,7 @@ install() {
     local version=$(get_latest_version)
     if [ -z "$version" ]; then
         echo -e "${RED}无法获取最新版本${NC}"
-        exit 1
+        return 1
     fi
     
     echo -e "${GREEN}最新版本: ${version}${NC}"
@@ -142,7 +146,7 @@ install() {
     
     echo -e "${GREEN}安装完成！${NC}"
     echo -e "${BLUE}服务状态:${NC}"
-    ${SUDO} systemctl status ${SERVICE_NAME} --no-pager -l
+    ${SUDO} systemctl status ${SERVICE_NAME} --no-pager -l || true
 }
 
 # 升级
@@ -152,7 +156,7 @@ upgrade() {
     # 检查是否已安装
     if [ ! -f "${INSTALL_DIR}/${BINARY_NAME}" ]; then
         echo -e "${YELLOW}未检测到已安装的版本，请使用 'install' 命令安装${NC}"
-        exit 1
+        return 1
     fi
     
     # 检测架构
@@ -205,7 +209,7 @@ upgrade() {
     
     echo -e "${GREEN}升级完成！${NC}"
     echo -e "${BLUE}服务状态:${NC}"
-    ${SUDO} systemctl status ${SERVICE_NAME} --no-pager -l
+    ${SUDO} systemctl status ${SERVICE_NAME} --no-pager -l || true
 }
 
 # 卸载
@@ -437,10 +441,26 @@ show_menu() {
     echo ""
     read -p "请输入选项 [0-5]: " choice
     
+    # 处理空输入或无效输入
+    if [ -z "$choice" ]; then
+        echo -e "${RED}无效选项，请重新选择${NC}"
+        sleep 1
+        show_menu
+        return
+    fi
+    
     case $choice in
         1)
             if [ "$is_installed" = false ]; then
-                install
+                if install; then
+                    echo ""
+                    read -p "按 Enter 键返回菜单..." dummy
+                else
+                    echo ""
+                    echo -e "${RED}安装失败，按 Enter 键返回菜单...${NC}"
+                    read dummy
+                fi
+                show_menu
             else
                 show_status
                 echo ""
@@ -455,9 +475,14 @@ show_menu() {
                 read -p "按 Enter 键返回菜单..." dummy
                 show_menu
             else
-                upgrade
-                echo ""
-                read -p "按 Enter 键返回菜单..." dummy
+                if upgrade; then
+                    echo ""
+                    read -p "按 Enter 键返回菜单..." dummy
+                else
+                    echo ""
+                    echo -e "${RED}升级失败，按 Enter 键返回菜单...${NC}"
+                    read dummy
+                fi
                 show_menu
             fi
             ;;
@@ -514,6 +539,7 @@ show_menu() {
             echo -e "${RED}无效选项，请重新选择${NC}"
             sleep 1
             show_menu
+            return
             ;;
     esac
 }
