@@ -18,6 +18,7 @@ go.work
 # IDE 配置
 .vscode/
 .idea/
+*.code-workspace
 *.swp
 *.swo
 *~
@@ -28,4 +29,3 @@ Thumbs.db
 
 # Release scripts (local use only)
 scripts/
-
