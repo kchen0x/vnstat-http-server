@@ -10,8 +10,8 @@ import (
 
 // Server wraps HTTP server configuration
 type Server struct {
-	token    string
-	service  *VnstatService
+	token   string
+	service *VnstatService
 }
 
 // NewServer creates a new Server instance
@@ -313,7 +313,7 @@ func (s *Server) generatePrometheusMetrics(data map[string]interface{}) string {
 
 		// Monthly traffic
 		if month, ok := traffic["month"].([]interface{}); ok && len(month) > 0 {
-			if monthData, ok := month[0].(map[string]interface{}); ok {
+			if monthData := extractLatestMonthData(month); monthData != nil {
 				if rx, ok := monthData["rx"].(float64); ok {
 					metrics.WriteString(fmt.Sprintf("vnstat_traffic_month_bytes{interface=\"%s\",direction=\"rx\"} %.0f\n", interfaceName, rx))
 				}
@@ -340,4 +340,3 @@ func (s *Server) generatePrometheusMetrics(data map[string]interface{}) string {
 
 	return metrics.String()
 }
-

@@ -20,13 +20,13 @@ func main() {
 	port := flag.String("port", "8080", "Listening port")
 	token := flag.String("token", "", "Authentication token (leave empty to disable)")
 	interfaceName := flag.String("interface", "", "Network interface name (leave empty to query all)")
-	
+
 	// Grafana Cloud push configuration
 	grafanaURL := flag.String("grafana-url", "", "Grafana Cloud Prometheus remote write URL (e.g., https://YOUR_PROMETHEUS_INSTANCE.grafana.net/api/prom/push)")
 	grafanaUser := flag.String("grafana-user", "", "Grafana Cloud instance ID")
 	grafanaToken := flag.String("grafana-token", "", "Grafana Cloud API token")
 	grafanaInterval := flag.Duration("grafana-interval", 30*time.Second, "Interval for pushing metrics to Grafana Cloud")
-	
+
 	flag.Parse()
 
 	// Create VnstatService instance
@@ -66,7 +66,7 @@ func main() {
 	}
 	log.Printf("Health check: http://localhost%s/health", addr)
 	log.Printf("Available endpoints: /json, /metrics, /summary, /daily, /hourly, /weekly, /monthly(/), /yearly, /top, /oneline")
-	
+
 	// Start Grafana Cloud push if configured (after server info, before server starts)
 	if *grafanaURL != "" && *grafanaUser != "" && *grafanaToken != "" {
 		go startGrafanaPush(*port, *token, *grafanaURL, *grafanaUser, *grafanaToken, *grafanaInterval, service)
@@ -74,7 +74,7 @@ func main() {
 	} else if *grafanaURL != "" || *grafanaUser != "" || *grafanaToken != "" {
 		log.Printf("Warning: Grafana Cloud push partially configured, disabled. All of -grafana-url, -grafana-user, and -grafana-token must be set.")
 	}
-	
+
 	log.Printf("Press Ctrl+C to stop")
 
 	// Start HTTP server
@@ -87,10 +87,10 @@ func main() {
 // startGrafanaPush starts a background goroutine to periodically push metrics to Grafana Cloud
 func startGrafanaPush(port, token, grafanaURL, grafanaUser, grafanaToken string, interval time.Duration, service *VnstatService) {
 	client := &http.Client{Timeout: 10 * time.Second}
-	
+
 	// Wait for HTTP server to be ready before first push
 	time.Sleep(2 * time.Second)
-	
+
 	// Retry logic for initial connection
 	maxRetries := 5
 	healthURL := fmt.Sprintf("http://localhost:%s/health", port)
@@ -169,10 +169,10 @@ func pushMetrics(client *http.Client, grafanaURL, grafanaUser, grafanaToken stri
 		log.Printf("Grafana push: failed to create request: %v", err)
 		return
 	}
-	
+
 	// Set Basic Auth (Instance ID as username, API Token as password)
 	req.SetBasicAuth(grafanaUser, grafanaToken)
-	
+
 	// Set headers for Prometheus remote write
 	req.Header.Set("Content-Type", "application/x-protobuf")
 	req.Header.Set("Content-Encoding", "snappy")
@@ -241,7 +241,7 @@ func convertToPrometheusWriteRequest(data map[string]interface{}, hostname strin
 
 		// Monthly traffic
 		if month, ok := traffic["month"].([]interface{}); ok && len(month) > 0 {
-			if monthData, ok := month[0].(map[string]interface{}); ok {
+			if monthData := extractLatestMonthData(month); monthData != nil {
 				if rx, ok := monthData["rx"].(float64); ok {
 					timeseries = append(timeseries, createTimeSeries(
 						"vnstat_traffic_month_bytes",
@@ -294,13 +294,13 @@ func convertToPrometheusWriteRequest(data map[string]interface{}, hostname strin
 func createTimeSeries(metricName string, labels map[string]string, value float64, timestamp int64) *prompb.TimeSeries {
 	// Build labels (prompb.Label is a value type, not pointer)
 	promLabels := make([]prompb.Label, 0, len(labels)+1)
-	
+
 	// Add __name__ label (metric name)
 	promLabels = append(promLabels, prompb.Label{
 		Name:  "__name__",
 		Value: metricName,
 	})
-	
+
 	// Add other labels
 	for k, v := range labels {
 		promLabels = append(promLabels, prompb.Label{
@@ -329,4 +329,3 @@ func convertTimeSeriesSlice(tsSlice []*prompb.TimeSeries) []prompb.TimeSeries {
 	}
 	return result
 }
-

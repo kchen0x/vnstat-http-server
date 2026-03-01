@@ -62,6 +62,31 @@ function getTodayData(dayArray) {
   return dayArray[lastIndex] || { rx: 0, tx: 0 };
 }
 
+function getLatestMonthData(monthArray) {
+  if (!monthArray || monthArray.length === 0) return { rx: 0, tx: 0 };
+
+  let latestMonthData = null;
+  let latestMonthKey = -1;
+
+  for (const monthData of monthArray) {
+    const year = monthData?.date?.year;
+    const month = monthData?.date?.month;
+    if (typeof year === 'number' && typeof month === 'number') {
+      const monthKey = year * 100 + month;
+      if (monthKey > latestMonthKey) {
+        latestMonthKey = monthKey;
+        latestMonthData = monthData;
+      }
+    }
+  }
+
+  if (latestMonthData) {
+    return latestMonthData;
+  }
+
+  return monthArray[monthArray.length - 1] || { rx: 0, tx: 0 };
+}
+
 // Fetch traffic data from server
 async function fetchTrafficData() {
   const url = `${CONFIG.SERVER_URL}/json${CONFIG.TOKEN ? `?token=${CONFIG.TOKEN}` : ''}`;
@@ -77,7 +102,7 @@ async function fetchTrafficData() {
     if (!interfaceData) throw new Error('Network interface data not found');
     return {
       today: getTodayData(interfaceData.traffic?.day),
-      month: interfaceData.traffic?.month?.[0] || { rx: 0, tx: 0 },
+      month: getLatestMonthData(interfaceData.traffic?.month),
       total: interfaceData.traffic?.total || { rx: 0, tx: 0 }
     };
   } catch (error) {
